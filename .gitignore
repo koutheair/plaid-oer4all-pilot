@@ -1,0 +1,25 @@
+--- General Operating System Files ---
+
+.DS_Store
+Thumbs.db
+
+--- Log Files ---
+
+*.log
+
+--- Firebase and Sensitive Files (Crucial for PLAID-OER4ALL) ---
+
+It is highly recommended to keep API keys and configurations OUT of the main index.html file
+
+and reference them from a file that is ignored. Since you are using a single HTML file,
+
+be extremely careful not to commit the version containing your actual keys!
+
+You would ignore a local environment variable file if you had one:
+
+.env
+
+--- Build/Tooling Directories (If you expand the project later) ---
+
+/node_modules/
+/dist/
