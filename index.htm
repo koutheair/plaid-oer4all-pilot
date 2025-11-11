@@ -53,6 +53,42 @@
 </head>
 <body class="p-4 md:p-8">
 
+<!-- START OF PASSWORD GATE -->
+    <script>
+        // CLIENT-SIDE PASSWORD PROTECTION
+        const correctPassword = "2025@PLAID-OER"; // <-- CHANGE THIS PASSWORD!
+        
+        function checkPassword() {
+            const storedPassword = sessionStorage.getItem('plaid_access');
+            
+            if (storedPassword === correctPassword) {
+                document.getElementById('password-gate').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                return;
+            }
+
+            let password = prompt("ENTER TEAM PASSWORD to access PLAID-OER4ALL:");
+            
+            if (password === correctPassword) {
+                sessionStorage.setItem('plaid_access', password);
+                document.getElementById('password-gate').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+            } else if (password !== null) {
+                alert("Incorrect Password. Access Denied.");
+            }
+        }
+
+        window.addEventListener('load', checkPassword);
+    </script>
+
+    <div id="password-gate" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50">
+        <div class="p-8 rounded-xl shadow-2xl bg-white text-center">
+            <h2 class="text-xl font-bold text-gray-700 mb-4">Access Restricted</h2>
+            <p class="text-gray-600 mb-6">This pilot tool is protected. Please refresh and enter the team password.</p>
+            <button onclick="checkPassword()" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">Enter Password</button>
+        </div>
+    </div>
+    <!-- END OF PASSWORD GATE -->
 <div id="app" class="max-w-4xl mx-auto">
     <!-- Header -->
     <header class="text-center mb-10">
@@ -779,4 +815,5 @@ The output MUST be in a structured **${userInputs.outputFormat}** format.
     };
 </script>
 </body>
+
 </html>
