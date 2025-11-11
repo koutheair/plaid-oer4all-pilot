@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLAID-OER4ALL: Prompting & Licensing Advisor</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK Imports (Required for Data Collection) -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+        }
+        /* Custom styles for accessibility and visual design */
+        .step-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .step-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .copy-btn {
+            background-color: #2563eb; 
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            transition: background-color 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: #1e40af;
+        }
+        .code-block {
+            background-color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        /* Ensuring focus visibility for accessibility */
+        input:focus, select:focus, textarea:focus, button:focus, label:focus-within {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div id="app" class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-extrabold text-blue-700">PLAID-OER4ALL Pilot</h1>
+        <p class="text-xl text-gray-600 mt-2">The AI OER Advisor for Creation, Licensing, and Inclusive Design</p>
+        <p class="text-sm text-gray-500 mt-1">Guiding educators from ethical creation to machine-readable permission.</p>
+    </header>
+
+    <!-- Step 1: Core OER Identity & Metadata -->
+    <div id="step-1" class="step-card mb-6 p-6">
+        <h2 class="text-2xl font-semibold text-blue-800 mb-4">Step 1: Core OER Identity & Metadata</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- OER Core Identity -->
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">1. OER Title</label>
+                <input type="text" id="title" name="oer_title" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" value="Module on AI Ethics and OER" oninput="updateResults()">
+            </div>
+            <div>
+                <label for="author" class="block text-sm font-medium text-gray-700 mb-1">2. Author Name (For Attribution)</label>
+                <input type="text" id="author" name="oer_author" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" value="Dr. Mohamed Koutheair Khribi" oninput="updateResults()">
+            </div>
+
+            <!-- OER Metadata (LOM) -->
+            <div class="md:col-span-2">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">3. Short Description / Abstract (LOM General)</label>
+                <textarea id="description" name="oer_description" rows="2" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" oninput="updateResults()">A comprehensive module covering the ethical and licensing considerations when educators use Generative AI to create academic content, suitable for professional development.</textarea>
+            </div>
+            
+            <!-- NEW OER METADATA FIELDS -->
+            <div>
+                <label for="materialType" class="block text-sm font-medium text-gray-700 mb-1">4. Material Type</label>
+                <select id="materialType" name="oer_material_type" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="Module/Unit">Module/Unit</option>
+                    <option value="Lesson Plan">Lesson Plan</option>
+                    <option value="Activity/Lab">Activity/Lab</option>
+                    <option value="Case Study">Case Study</option>
+                    <option value="Simulation">Simulation</option>
+                    <option value="Textbook">Textbook</option>
+                    <option value="Syllabus">Syllabus</option>
+                    <option value="Interactive Resource">Interactive Resource</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+             <div>
+                <label for="educationalUse" class="block text-sm font-medium text-gray-700 mb-1">5. Educational Use</label>
+                <select id="educationalUse" name="oer_educational_use" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="Curriculum">Curriculum</option>
+                    <option value="Assessment">Assessment</option>
+                    <option value="Supplementary">Supplementary</option>
+                    <option value="Professional Development" selected>Professional Development</option>
+                    <option value="Assignment">Assignment</option>
+                    <option value="Exam">Exam</option>
+                    <option value="Reference">Reference</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+            <div>
+                <label for="primaryUser" class="block text-sm font-medium text-gray-700 mb-1">6. Primary User</label>
+                <select id="primaryUser" name="oer_primary_user" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="Educator" selected>Educator</option>
+                    <option value="Student">Student</option>
+                    <option value="Administrator">Administrator</option>
+                    <option value="Researcher">Researcher</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+            <div>
+                <label for="audienceLevel" class="block text-sm font-medium text-gray-700 mb-1">7. Target Audience / Level (LOM Educational)</label>
+                <select id="audienceLevel" name="oer_audience_level" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="Professional/Continuing Education" selected>Professional/Continuing Education</option>
+                    <option value="Undergraduate, First-Year">Undergraduate, First-Year</option>
+                    <option value="K-5 (Elementary)">K-5 (Elementary)</option>
+                    <option value="6-8 (Middle School)">6-8 (Middle School)</option>
+                    <option value="9-12 (High School)">9-12 (High School)</option>
+                    <option value="Undergraduate, Upper-Level">Undergraduate, Upper-Level</option>
+                    <option value="Graduate/Post-Graduate">Graduate/Post-Graduate</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+            
+            <!-- TECHNICAL/ATTRIBUTION -->
+            <div>
+                <label for="url" class="block text-sm font-medium text-gray-700 mb-1">8. OER Hosted URL (for License Link)</label>
+                <input type="url" id="url" name="oer_url" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" value="https://example.edu/open-ethics" oninput="updateResults()">
+            </div>
+            <div>
+                <label for="language" class="block text-sm font-medium text-gray-700 mb-1">9. Language (LOM Technical)</label>
+                <select id="language" name="oer_language" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="English" selected>English</option>
+                    <option value="Arabic">Arabic (العربية)</option>
+                    <option value="Chinese (Mandarin)">Chinese (Mandarin - 普通话)</option>
+                    <option value="Spanish">Spanish (Español)</option>
+                    <option value="French">French (Français)</option>
+                    <option value="German">German (Deutsch)</option>
+                    <option value="Japanese">Japanese (日本語)</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Step 2: OER Inclusivity & Design Requirements -->
+    <div id="step-2" class="step-card mb-6 p-6">
+        <h2 class="text-2xl font-semibold text-red-600 mb-4">Step 2: OER Inclusivity & Design Requirements</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- UDL Principles Checkboxes (Granular Focus) -->
+            <div class="md:col-span-2 border-b pb-4 mb-4">
+                <h3 class="font-medium text-lg text-red-700 mb-2">1. UDL Principles Focus (UDL Guidelines 3.0)</h3>
+                <p class="text-sm text-gray-600 mb-3">Select the UDL checkpoints the AI should prioritize during content generation.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    
+                    <!-- UDL Principle 1: Representation -->
+                    <fieldset class="p-3 border border-red-200 rounded-lg bg-red-50">
+                        <legend class="font-medium text-sm text-red-600">Representation</legend>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_rep" value="Text alternatives for visuals" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Text alternatives for visuals</span>
+                        </label>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_rep" value="Multiple media types (text/audio/visual)" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Multiple media types (text/audio/visual)</span>
+                        </label>
+                        <label class="block text-sm">
+                            <input type="checkbox" name="udl_rep" value="Highlight patterns/critical features" onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Highlight patterns/critical features</span>
+                        </label>
+                    </fieldset>
+
+                    <!-- UDL Principle 2: Action & Expression -->
+                    <fieldset class="p-3 border border-red-200 rounded-lg bg-red-50">
+                        <legend class="font-medium text-sm text-red-600">Action & Expression</legend>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_ae" value="Variety of methods for navigation/response" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Variety of methods for response</span>
+                        </label>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_ae" value="Support for executive functions (planning)" onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Support for executive functions (planning)</span>
+                        </label>
+                        <label class="block text-sm">
+                            <input type="checkbox" name="udl_ae" value="Use of multiple tools for construction/composition" onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Use of multiple tools for construction/composition</span>
+                        </label>
+                    </fieldset>
+
+                    <!-- UDL Principle 3: Engagement -->
+                    <fieldset class="p-3 border border-red-200 rounded-lg bg-red-50">
+                        <legend class="font-medium text-sm text-red-600">Engagement</legend>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_eng" value="Optimize relevance and value" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Optimize relevance and value</span>
+                        </label>
+                        <label class="block text-sm mb-1">
+                            <input type="checkbox" name="udl_eng" value="Foster collaboration and community" onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Foster collaboration and community</span>
+                        </label>
+                        <label class="block text-sm">
+                            <input type="checkbox" name="udl_eng" value="Promote self-assessment and reflection" onchange="updateResults()" class="form-checkbox text-red-600">
+                            <span class="ml-2">Promote self-assessment and reflection</span>
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+
+
+            <!-- WCAG Compliance -->
+            <div class="md:col-span-2">
+                <label class="inline-flex items-center mb-2">
+                    <input type="checkbox" id="wcagCompliance" name="wcag_compliance" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                    <span class="ml-2 text-sm font-medium text-gray-700">2. **WCAG 2.2 AA Compliance** Required</span>
+                </label>
+                <p class="text-xs text-gray-500 mt-1">This instructs the AI to use proper heading hierarchy, clear language, focus indicators, and placeholders for descriptive alt text.</p>
+            </div>
+            
+            <!-- Accessibility Options (OER Commons / LOM Media Formats) -->
+            <div class="md:col-span-2 border-t pt-4 mt-4">
+                <h3 class="font-semibold text-lg text-red-600 mb-2">3. Required Media and Accessibility Formats</h3>
+                <p class="text-sm text-gray-600 mb-3">Select all formats the AI should prioritize outputting or generating elements for.</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Visual" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Visual Elements (with Alt Text)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Textual" checked onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Textual Format</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Long Description" onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Long Description (Placeholders)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Caption" onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Caption/Subtitle (Placeholders)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Transcript" onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Transcript (Placeholders)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Auditory" onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Auditory/Sound Elements (Placeholders)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="format" value="Other" onchange="updateResults()" class="form-checkbox text-red-600">
+                        <span class="ml-2 text-sm">Other (Specify in Prompt)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- OER Output Format -->
+            <div class="md:col-span-2 border-t pt-4 mt-4">
+                <label for="outputFormat" class="block text-sm font-medium text-gray-700 mb-1">4. Desired Final Output Format</label>
+                <select id="outputFormat" name="oer_output_format" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateResults()">
+                    <option value="Markdown (for publishing)">Markdown (for publishing)</option>
+                    <option value="HTML/Webpage Structure">HTML/Webpage Structure</option>
+                    <option value="EPUB Ebook">EPUB Ebook</option>
+                    <option value="PDF Document">PDF Document</option>
+                    <option value="Other">Other (Specify in Prompt)</option>
+                </select>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Step 3: AI-OER Integrity Check (Licensing Variables) -->
+    <div id="step-3" class="step-card mb-6 p-6">
+        <h2 class="text-2xl font-semibold text-blue-800 mb-4">Step 3: AI-OER Integrity Check (Licensing Variables)</h2>
+        <p class="text-gray-600 mb-4">Select the option that best describes your OER creation process. This determines your ideal license based on the **three-variable matrix**.</p>
+
+        <!-- Variable A: Authorship Origin (AO) -->
+        <fieldset class="mb-5 p-4 border border-blue-200 rounded-lg bg-blue-50">
+            <legend class="font-semibold text-lg text-blue-700">A. Authorship Origin (AO)</legend>
+            <p class="text-sm text-gray-600 mb-3">Which category best describes the origin of the OER?</p>
+            <div class="space-y-2">
+                <label class="block cursor-pointer">
+                    <input type="radio" name="ao" value="Human-Authored, AI-Assisted" checked onchange="updateResults()" class="form-radio text-blue-600">
+                    <span class="ml-2 font-medium">Human-Authored, AI-Assisted</span> <span class="text-sm text-gray-500">(Human idea, AI used for small tasks like grammar, style, or structure.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="ao" value="AI + Human Refinement" onchange="updateResults()" class="form-radio text-blue-600">
+                    <span class="ml-2 font-medium">AI + Human Refinement</span> <span class="text-sm text-gray-500">(AI generated core content, human provided moderate editing/vetting.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="ao" value="AI-Only" onchange="updateResults()" class="form-radio text-blue-600">
+                    <span class="ml-2 font-medium">AI-Only</span> <span class="text-sm text-gray-500">(AI generated content with minimal/none human involvement in creation/refinement.)</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Variable B: Educational Data Source (EDS) -->
+        <fieldset class="mb-5 p-4 border border-green-200 rounded-lg bg-green-50">
+            <legend class="font-semibold text-lg text-green-700">B. Educational Data Source (EDS)</legend>
+            <p class="text-sm text-gray-600 mb-3">What is the source of the data used by the Gen AI tool?</p>
+            <div class="space-y-2">
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="Public Domain / CC0" checked onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">Public Domain / CC0</span> <span class="text-sm text-gray-500">(Content based on public domain or CC0 inputs.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="OER (CC BY / CC BY-SA)" onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">OER (CC BY / CC BY-SA)</span> <span class="text-sm text-gray-500">(Inputs were openly licensed OER, respecting SA if required.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="Mixed OER (CC-compatible)" onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">Mixed OER (CC-compatible)</span> <span class="text-sm text-gray-500">(Inputs were multiple CC-compatible licenses, applying the most restrictive rules.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="Restrictive CC (NC / ND)" onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">Restrictive CC (NC / ND)</span> <span class="text-sm text-gray-500">(Inputs included non-derivable or non-commercial content.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="Proprietary Content" onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">Proprietary Content</span> <span class="text-sm text-gray-500">(Inputs included copyrighted material or institutional proprietary data.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="eds" value="No External Source" onchange="updateResults()" class="form-radio text-green-600">
+                    <span class="ml-2 font-medium">No External Source</span> <span class="text-sm text-gray-500">(AI relied purely on its internal model - typically treated as PD/CC0 risk.)</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Variable C: Level of Human Involvement (LHI) - Metadata only, logic driven by AO -->
+        <fieldset class="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+            <legend class="font-semibold text-lg text-yellow-700">C. Level of Human Involvement (LHI)</legend>
+            <p class="text-sm text-gray-600 mb-3">Which LHI level describes your content transformation? (As per matrix policy)</p>
+            <div class="space-y-2">
+                <label class="block cursor-pointer">
+                    <input type="radio" name="lhi" value="High (>60%)" checked onchange="updateResults()" class="form-radio text-yellow-600">
+                    <span class="ml-2 font-medium">High Transformation (>60%)</span> <span class="text-sm text-gray-500">(Substantial re-writing, fact-checking, and restructuring.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="lhi" value="Moderate/Substantial" onchange="updateResults()" class="form-radio text-yellow-600">
+                    <span class="ml-2 font-medium">Moderate/Substantial</span> <span class="text-sm text-gray-500">(Moderate editing and vetting.)</span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="lhi" value="Minimal / None" onchange="updateResults()" class="form-radio text-yellow-600">
+                    <span class="ml-2 font-medium">Minimal / None</span> <span class="text-sm text-gray-500">(Primarily light review or pure AI output.)</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Optional: ShareAlike Choice (Only shown for CC BY/CC BY-SA Ambiguity) -->
+        <fieldset id="sa-choice-field" class="p-4 border border-purple-200 rounded-lg bg-purple-50 hidden mt-4">
+            <legend class="font-semibold text-lg text-purple-700">D. ShareAlike Preference?</legend>
+            <p class="text-sm text-gray-600 mb-3">The chosen path allows for either CC BY or CC BY-SA. Do you want to require that future derivatives share under the same license? (ShareAlike)</p>
+            <div class="space-y-2">
+                <label class="inline-flex items-center mr-6">
+                    <input type="radio" name="sa_choice" value="Yes" checked onchange="updateResults()" class="form-radio text-purple-600">
+                    <span class="ml-2 font-medium">Yes (CC BY-SA)</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="sa_choice" value="No" onchange="updateResults()" class="form-radio text-purple-600">
+                    <span class="ml-2 font-medium">No (CC BY)</span>
+                </label>
+            </div>
+        </fieldset>
+    </div>
+
+    <!-- Step 4: License Chooser & Prompt Output -->
+    <div id="step-4" class="step-card p-6">
+        <h2 class="text-2xl font-semibold text-green-700 mb-4">Step 4: AI-Driven OER License & Prompt Output</h2>
+
+        <!-- License Result Display -->
+        <div class="mb-8 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+            <p class="text-lg font-medium text-gray-700">Recommended Creative Commons License:</p>
+            <div id="licenseDisplay" class="flex flex-col items-center justify-center mt-2">
+                <!-- License Image and Text will go here -->
+                <img id="ccLicenseImage" class="w-auto h-10 mb-2" alt="Creative Commons License Icon">
+                <div id="licenseResult" class="text-3xl font-bold text-red-600">CC BY 4.0</div>
+            </div>
+            <p id="licenseRationale" class="text-sm text-gray-500 mt-2">Rationale: Your combination prioritizes sharing while mitigating risks from potential mixed data sources.</p>
+        </div>
+
+        <!-- Advisory for Non-Advisable Result -->
+        <div id="advisory" class="hidden mt-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+            <p class="font-bold">Licensing Not Advisable (Permission Required)</p>
+            <p>Based on your input, the use of **Proprietary Content** or **Restrictive CC (NC/ND)** content suggests the resulting OER is **Not OER** or requires explicit **Permission** from the original rights holder before any CC license can be applied. Please revise your creation process to use open inputs, or obtain authorization.</p>
+        </div>
+
+        <!-- Output 1: Machine-Readable CC License Code -->
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">Output 1: Machine-Readable CC License Code (Insert into OER Footer)</h3>
+        <div class="flex items-center space-x-3 mb-6">
+            <textarea id="ccLicenseOutput" rows="5" class="flex-grow code-block text-xs" readonly></textarea>
+            <button onclick="copyToClipboard('ccLicenseOutput')" class="copy-btn self-start flex-shrink-0 hover:bg-green-700">Copy Code</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-2 mb-6">This code includes the license link and machine-readable attribution for the author and URL provided in Step 1.</p>
+
+
+        <!-- Output 2: AI-Ready Prompt -->
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">Output 2: Comprehensive AI-Ready Prompt (Copy to LLM)</h3>
+        <div class="flex items-center space-x-3 mb-6">
+            <textarea id="aiPromptOutput" rows="12" class="flex-grow code-block text-sm" readonly></textarea>
+            <button onclick="copyToClipboard('aiPromptOutput')" class="copy-btn self-start flex-shrink-0 hover:bg-green-700">Copy Prompt</button>
+        </div>
+        
+        <!-- Voluntary Research Contribution -->
+        <div class="mt-8 pt-6 border-t border-gray-300">
+            <h3 class="text-xl font-semibold text-purple-700 mb-3">5. Voluntary Research Contribution</h3>
+            <p class="text-sm text-gray-600 mb-4">Help us improve this tool! By submitting this form, you voluntarily share your inputs (metadata, licensing choices, and contact details) with the research team. This data will be used solely for academic analysis of tool usage and is securely saved using **Firebase Firestore**.</p>
+            
+            <!-- RESEARCH FORM FOR FIREBASE SUBMISSION -->
+            <form id="researchForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                        <input type="text" id="userName" name="researcher_name" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label for="userTitle" class="block text-sm font-medium text-gray-700 mb-1">Your Title / Role</label>
+                        <input type="text" id="userTitle" name="researcher_title" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label for="userInstitution" class="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                        <input type="text" id="userInstitution" name="researcher_institution" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label for="userCountry" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                        <input type="text" id="userCountry" name="researcher_country" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="userEmail" class="block text-sm font-medium text-gray-700 mb-1">Email (Required for confirmation)</label>
+                        <input type="email" id="userEmail" name="_replyto" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                </div>
+
+                <button type="submit" id="submitDataBtn" class="mt-4 w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-150 disabled:bg-gray-400">
+                    Submit Usage Data
+                </button>
+                <p id="submissionStatus" class="text-sm mt-2 text-center text-gray-500">Initializing database connection...</p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- UTILITY FUNCTIONS ---
+
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        element.select();
+        element.setSelectionRange(0, 99999); 
+        
+        try {
+            document.execCommand('copy');
+            alertMessage('Copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            alertMessage('Failed to copy. Please copy manually.', 'error');
+        }
+    }
+
+    function alertMessage(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.textContent = message;
+        alertDiv.className = `fixed top-4 right-4 p-3 rounded-lg text-white shadow-lg z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 3000);
+    }
+
+    function getSelectedValues() {
+        const ao = document.querySelector('input[name="ao"]:checked')?.value;
+        const eds = document.querySelector('input[name="eds"]:checked')?.value;
+        const lhi = document.querySelector('input[name="lhi"]:checked')?.value; 
+        const saChoice = document.querySelector('input[name="sa_choice"]:checked')?.value;
+
+        const selectedFormats = Array.from(document.querySelectorAll('input[name="format"]:checked')).map(cb => cb.value);
+        const selectedUdlRep = Array.from(document.querySelectorAll('input[name="udl_rep"]:checked')).map(cb => cb.value);
+        const selectedUdlAe = Array.from(document.querySelectorAll('input[name="udl_ae"]:checked')).map(cb => cb.value);
+        const selectedUdlEng = Array.from(document.querySelectorAll('input[name="udl_eng"]:checked')).map(cb => cb.value);
+
+        return { ao, eds, lhi, saChoice, selectedFormats, selectedUdlRep, selectedUdlAe, selectedUdlEng };
+    }
+
+    // --- FIREBASE LOGIC (From plaid_oer4all_logic.js) ---
+
+    // --- GLOBAL FIREBASE VARIABLES (PLACEHOLDERS) ---
+    // !!! CRITICAL: REPLACE THESE WITH YOUR ACTUAL FIREBASE PROJECT KEYS !!!
+    const appId = 'YOUR-ACTUAL-PROJECT-ID'; 
+    const firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY_HERE",
+        authDomain: "your-project-id.firebaseapp.com",
+        projectId: appId, 
+        storageBucket: "your-project-id.appspot.com",
+        messagingSenderId: "YOUR_MESSAGING_ID",
+        appId: "YOUR_APP_ID"
+    };
+    const initialAuthToken = null; 
+
+    let db = null;
+    let auth = null;
+    let currentUserId = 'anonymous-user';
+
+    async function initializeFirebase() {
+        try {
+            if (firebase.apps.length === 0) {
+                 const app = firebase.initializeApp(firebaseConfig);
+                 db = firebase.firestore(app);
+                 auth = firebase.auth(app);
+            } else {
+                db = firebase.firestore();
+                auth = firebase.auth();
+            }
+            
+            // firebase.firestore.setLogLevel('debug'); 
+            
+            if (typeof initialAuthToken !== 'undefined' && initialAuthToken) {
+                await auth.signInWithCustomToken(initialAuthToken);
+            } else {
+                await auth.signInAnonymously();
+            }
+
+            auth.onAuthStateChanged(user => {
+                const statusElement = document.getElementById('submissionStatus');
+                if (user) {
+                    currentUserId = user.uid;
+                    statusElement.textContent = `Database Ready (User ID: ${currentUserId.substring(0, 8)}...).`;
+                } else {
+                    currentUserId = 'anonymous-' + Math.random().toString(36).substring(2, 9);
+                    statusElement.textContent = `Database Ready (Anonymous Mode).`;
+                }
+                document.getElementById('submitDataBtn').disabled = false;
+            });
+
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+            document.getElementById('submissionStatus').textContent = `ERROR: DB setup failed. Check console and API keys.`;
+            document.getElementById('submitDataBtn').disabled = true;
+        }
+    }
+
+
+    // --- LICENSING DATA (MATRIX MAPPING) ---
+
+    const LICENSES = {
+        'CC BY': { url: 'https://creativecommons.org/licenses/by/4.0/', name: 'CC BY 4.0', img: 'https://i.creativecommons.org/l/by/4.0/88x31.png', rationale: 'The most permissive license. Recommended when maximum freedom is desired and ShareAlike is not legally required.' },
+        'CC BY-SA': { url: 'https://creativecommons.org/licenses/by-sa/4.0/', name: 'CC BY-SA 4.0', img: 'https://i.creativecommons.org/l/by-sa/4.0/88x31.png', rationale: 'Requires sharing under the same terms (ShareAlike). Recommended for mixed inputs or when enforcing future openness.' },
+        'CC0': { url: 'https://creativecommons.org/publicdomain/zero/1.0/', name: 'CC0 (Public Domain)', img: 'https://i.creativecommons.org/p/zero/1.0/88x31.png', rationale: 'Grants the least restrictive status, typically reserved for OER based purely on public domain/AI internal model data.' },
+        'NOT ADVISED': { url: '#', name: 'NOT ADVISED (Permission Required)', img: '', rationale: 'The resulting content is likely non-OER due to inputs (Proprietary/NC/ND) and requires explicit Permission from the original rights holder before any CC license can be applied. This material cannot be shared as OER.' }
+    };
+
+    const LICENSE_MAP = {
+        'AI-Only_No External Source': { action: 'CC0' },                               
+        'AI-Only_Public Domain / CC0': { action: 'CC0/CC BY' },                         
+        'AI-Only_OER (CC BY / CC BY-SA)': { action: 'CC BY-SA' },                       
+        'AI-Only_Mixed OER (CC-compatible)': { action: 'CC BY-SA' },                    
+        'AI-Only_Restrictive CC (NC / ND)': { action: 'NOT ADVISED' },                  
+        'AI-Only_Proprietary Content': { action: 'NOT ADVISED' },                       
+        'AI + Human Refinement_No External Source': { action: 'CC BY/CC BY-SA' },       
+        'AI + Human Refinement_Public Domain / CC0': { action: 'CC BY/CC BY-SA' },      
+        'AI + Human Refinement_OER (CC BY / CC BY-SA)': { action: 'CC BY-SA' },          
+        'AI + Human Refinement_Mixed OER (CC-compatible)': { action: 'CC BY-SA' },       
+        'AI + Human Refinement_Restrictive CC (NC / ND)': { action: 'NOT ADVISED' },    
+        'AI + Human Refinement_Proprietary Content': { action: 'NOT ADVISED' },          
+        'Human-Authored, AI-Assisted_No External Source': { action: 'CC BY/CC BY-SA' },  
+        'Human-Authored, AI-Assisted_Public Domain / CC0': { action: 'CC BY/CC BY-SA' }, 
+        'Human-Authored, AI-Assisted_OER (CC BY / CC BY-SA)': { action: 'CC BY-SA' },    
+        'Human-Authored, AI-Assisted_Mixed OER (CC-compatible)': { action: 'CC BY-SA' }, 
+        'Human-Authored, AI-Assisted_Restrictive CC (NC / ND)': { action: 'NOT ADVISED' },
+        'Human-Authored, AI-Assisted_Proprietary Content': { action: 'NOT ADVISED' }     
+    };
+
+
+    function determineLicense(ao, eds, saChoice) {
+        const key = `${ao}_${eds}`;
+        const result = LICENSE_MAP[key];
+        const saChoiceField = document.getElementById('sa-choice-field');
+
+        if (!result) { saChoiceField.classList.add('hidden'); return 'NOT ADVISED'; }
+
+        if (result.action === 'NOT ADVISED') {
+            saChoiceField.classList.add('hidden');
+            document.getElementById('advisory').classList.remove('hidden');
+            return 'NOT ADVISED';
+        } else {
+            document.getElementById('advisory').classList.add('hidden');
+        }
+
+        if (result.action === 'CC BY-SA') { saChoiceField.classList.add('hidden'); return 'CC BY-SA'; }
+        if (result.action === 'CC0') { saChoiceField.classList.add('hidden'); return 'CC0'; }
+
+        // Ambiguous Outcomes: CC0/CC BY or CC BY/CC BY-SA
+        if (result.action === 'CC0/CC BY' || result.action === 'CC BY/CC BY-SA') {
+            saChoiceField.classList.remove('hidden');
+            return (saChoice === 'Yes') ? 'CC BY-SA' : 'CC BY';
+        }
+
+        saChoiceField.classList.add('hidden');
+        return 'CC BY';
+    }
+
+
+    function generateAiPrompt(licenseKey, userInputs) {
+        const license = LICENSES[licenseKey];
+        
+        const udlRepresentation = userInputs.udlRep.length ? `(Representation: ${userInputs.udlRep.join('; ')}.)` : '()';
+        const udlActionExpression = userInputs.udlAe.length ? `(Action & Expression: ${userInputs.udlAe.join('; ')}.)` : '()';
+        const udlEngagement = userInputs.udlEng.length ? `(Engagement: ${userInputs.udlEng.join('; ')}.)` : '()';
+        const accessibilityFormats = userInputs.formats.length ? `Ensure structural elements for: ${userInputs.formats.join(', ')}.` : 'Ensure standard HTML structure.';
+
+        return `
+**OER CREATION MANDATE**
+You are a specialized instructional designer AI tasked with generating an Open Educational Resource (OER).
+The output MUST be in a structured **${userInputs.outputFormat}** format.
+
+**I. CORE CONTENT (Step 1)**
+* **Title:** ${userInputs.title}
+* **Author:** ${userInputs.author} (For required attribution)
+* **Description:** ${userInputs.description}
+* **Target:** ${userInputs.audienceLevel} students/professionals, primarily used for **${userInputs.educationalUse}**.
+* **Language:** ${userInputs.language}.
+
+**II. INCLUSIVITY & ACCESSIBILITY (Step 2)**
+* **WCAG Compliance:** Strict adherence to **WCAG 2.2 AA** principles (use proper H1-H6 hierarchy, clear, concise language, and robust text-to-speech compatibility).
+* **UDL Focus:** Integrate learning options covering all three UDL principles:
+    * ${udlRepresentation}
+    * ${udlActionExpression}
+    * ${udlEngagement}
+* **Media Requirements:** ${accessibilityFormats}
+
+**III. LICENSING & ETHICS (Step 3)**
+* **Creation Pathway (AO/EDS):** Created via ${userInputs.ao} using a ${userInputs.eds} data source.
+* **Final License:** The resulting OER MUST be released under the **${license.name}** license (${license.url}).
+* **Attribution Rule:** If source material requires attribution, include a placeholder 'Based on: [Source]' in the final output.
+
+**TASK:** Generate the complete educational content based on the above mandate.
+    `.trim();
+    }
+
+    function generateLicenseCode(licenseKey, userInputs) {
+        const license = LICENSES[licenseKey];
+        const year = new Date().getFullYear();
+
+        if (licenseKey === 'NOT ADVISED') {
+            return `<!-- LICENSING NOT POSSIBLE: Please resolve proprietary or restrictive inputs before publishing. This content is NOT OER. -->`;
+        }
+
+        return `<!-- Creative Commons License for OER: ${userInputs.title} -->
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/">
+    <a rel="license" href="${license.url}">
+        <img alt="Creative Commons License" style="border-width:0" src="${license.img}" />
+    </a>
+    <br />
+    This **${userInputs.materialType}**, titled "<span property="dct:title">${userInputs.title}</span>,"
+    is licensed under a
+    <a rel="license" href="${license.url}">${license.name}</a>.
+    <br />
+    Attribution: This OER was created by <span property="cc:attributionName">${userInputs.author}</span> in ${year}.
+    The resource is hosted at <a property="cc:attributionURL" href="${userInputs.url}">${userInputs.url}</a>.
+</p>
+<!-- End of License Code -->`.trim();
+    }
+
+
+    function updateResults() {
+        const title = document.getElementById('title').value || 'Untitled OER';
+        const author = document.getElementById('author').value || 'Unknown Author';
+        const description = document.getElementById('description').value || 'A new educational resource.';
+        const url = document.getElementById('url').value || 'https://example.com/oer-resource';
+        const materialType = document.getElementById('materialType').value;
+        const educationalUse = document.getElementById('educationalUse').value;
+        const primaryUser = document.getElementById('primaryUser').value;
+        const audienceLevel = document.getElementById('audienceLevel').value;
+        const outputFormat = document.getElementById('outputFormat').value;
+        const language = document.getElementById('language').value;
+        
+        const selectedFormats = Array.from(document.querySelectorAll('input[name="format"]:checked')).map(cb => cb.value);
+        const selectedUdlRep = Array.from(document.querySelectorAll('input[name="udl_rep"]:checked')).map(cb => cb.value);
+        const selectedUdlAe = Array.from(document.querySelectorAll('input[name="udl_ae"]:checked')).map(cb => cb.value);
+        const selectedUdlEng = Array.from(document.querySelectorAll('input[name="udl_eng"]:checked')).map(cb => cb.value);
+
+        const ao = document.querySelector('input[name="ao"]:checked')?.value;
+        const eds = document.querySelector('input[name="eds"]:checked')?.value;
+        const lhi = document.querySelector('input[name="lhi"]:checked')?.value; 
+        const saChoice = document.querySelector('input[name="sa_choice"]:checked')?.value;
+
+        const userInputs = { title, author, description, url, materialType, educationalUse, primaryUser, audienceLevel, outputFormat, language, ao, eds, lhi, saChoice, formats: selectedFormats, udlRep: selectedUdlRep, udlAe: selectedUdlAe, udlEng: selectedUdlEng };
+
+        const licenseKey = determineLicense(ao, eds, saChoice);
+        const licenseData = LICENSES[licenseKey];
+        
+        document.getElementById('ccLicenseImage').src = licenseData.img;
+        document.getElementById('ccLicenseImage').alt = licenseData.name;
+        document.getElementById('licenseResult').textContent = licenseData.name;
+        document.getElementById('licenseRationale').textContent = licenseData.rationale;
+
+        const ccCode = generateLicenseCode(licenseKey, userInputs);
+        document.getElementById('ccLicenseOutput').value = ccCode;
+        
+        const aiPrompt = generateAiPrompt(licenseKey, userInputs);
+        document.getElementById('aiPromptOutput').value = aiPrompt;
+    }
+
+    async function saveUsageDataToFirestore() {
+        if (!db || !auth.currentUser) {
+            document.getElementById('submissionStatus').textContent = `ERROR: Database not ready. Wait for initialization.`;
+            return;
+        }
+        
+        const { ao, eds, lhi, saChoice, selectedFormats, selectedUdlRep, selectedUdlAe, selectedUdlEng } = getSelectedValues();
+        const licenseKey = determineLicense(ao, eds, saChoice);
+
+        const submissionData = {
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            userId: currentUserId,
+            final_license: licenseKey,
+            // Step 1: Metadata
+            oer_title: document.getElementById('title').value,
+            oer_author: document.getElementById('author').value,
+            oer_material_type: document.getElementById('materialType').value,
+            oer_audience_level: document.getElementById('audienceLevel').value,
+            // Step 3: Licensing Variables
+            ao_authorship_origin: ao,
+            eds_data_source: eds,
+            lhi_human_involvement: lhi,
+            sa_choice: saChoice || 'N/A', 
+            // Step 2: Inclusivity Choices
+            udl_representation_choices: selectedUdlRep.join(', '),
+            udl_action_expression_choices: selectedUdlAe.join(', '),
+            udl_engagement_choices: selectedUdlEng.join(', '),
+            required_media_formats: selectedFormats.join(', '),
+            // Step 4: Researcher Contact (Optional)
+            researcher_name: document.getElementById('userName').value || null,
+            researcher_email: document.getElementById('userEmail').value || null
+        };
+
+        try {
+            const collectionPath = `artifacts/${appId}/public/data/plaid_oer_usage`; 
+            await db.collection(collectionPath).add(submissionData);
+            
+            document.getElementById('submissionStatus').textContent = "Success! Data saved for research.";
+            alertMessage('Data successfully submitted to Firestore!', 'success');
+            document.getElementById('submitDataBtn').disabled = true; 
+        } catch (e) {
+            console.error("Error writing document to Firestore: ", e);
+            document.getElementById('submissionStatus').textContent = `ERROR: Failed to save data. See console.`;
+            alertMessage('Submission Failed!', 'error');
+            document.getElementById('submitDataBtn').disabled = false;
+        }
+    }
+
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+            console.error("Firebase SDK not loaded. Check script imports.");
+            document.getElementById('submissionStatus').textContent = `ERROR: Firebase SDK not loaded.`;
+            document.getElementById('submitDataBtn').disabled = true;
+            return;
+        }
+        
+        initializeFirebase();
+        updateResults(); 
+
+        const form = document.getElementById('researchForm');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            saveUsageDataToFirestore();
+        });
+    };
+</script>
+</body>
+</html>
